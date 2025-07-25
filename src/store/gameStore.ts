@@ -6,7 +6,6 @@ export type GameState = "menu" | "playing" | "paused" | "gameOver";
 // Player stats interface
 interface PlayerStats {
   score: number;
-  survivalTime: number;
   highScore: number;
   gamesPlayed: number;
 }
@@ -31,6 +30,11 @@ interface GameStore {
   gameState: GameState;
   isNavigationActive: boolean;
 
+  // Timing for pause/resume
+  gameStartTime: number | null;
+  totalPausedTime: number;
+  lastPauseTime: number | null;
+
   // Player stats
   playerStats: PlayerStats;
 
@@ -48,12 +52,16 @@ interface GameStore {
   setGameState: (state: GameState) => void;
   startGame: () => void;
   pauseGame: () => void;
+  resumeGame: () => void;
   endGame: () => void;
   resetGame: () => void;
 
   updatePlayerPosition: (x: number, y: number, z: number) => void;
   updateScore: (points: number) => void;
-  updateSurvivalTime: (time: number) => void;
+
+  // Timing helpers
+  setGameStartTime: (time: number) => void;
+  getAdjustedGameTime: (currentTime: number) => number;
 
   // Difficulty progression
   increaseDifficulty: () => void;
@@ -74,11 +82,32 @@ const defaultGameSettings: GameSettings = {
   movementBounds: 0.4, // Maximum distance from tunnel center
 };
 
+// LocalStorage key for persisting high score
+const HIGH_SCORE_KEY = "wormhole-high-score";
+
+// Load high score from localStorage
+const loadHighScore = (): number => {
+  try {
+    const saved = localStorage.getItem(HIGH_SCORE_KEY);
+    return saved ? parseInt(saved, 10) : 0;
+  } catch {
+    return 0;
+  }
+};
+
+// Save high score to localStorage
+const saveHighScore = (score: number): void => {
+  try {
+    localStorage.setItem(HIGH_SCORE_KEY, score.toString());
+  } catch {
+    // Ignore localStorage errors (e.g., in private browsing)
+  }
+};
+
 // Default player stats
 const defaultPlayerStats: PlayerStats = {
   score: 0,
-  survivalTime: 0,
-  highScore: 0,
+  highScore: loadHighScore(),
   gamesPlayed: 0,
 };
 
@@ -87,6 +116,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Initial state
   gameState: "menu",
   isNavigationActive: false,
+
+  // Timing state
+  gameStartTime: null,
+  totalPausedTime: 0,
+  lastPauseTime: null,
 
   playerStats: defaultPlayerStats,
   gameSettings: defaultGameSettings,
@@ -104,23 +138,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       gameState: "playing",
       isNavigationActive: true,
+      gameStartTime: null, // Will be set by the game component
+      totalPausedTime: 0,
+      lastPauseTime: null,
       playerStats: {
         ...get().playerStats,
         score: 0,
-        survivalTime: 0,
         gamesPlayed: get().playerStats.gamesPlayed + 1,
       },
     }),
 
-  pauseGame: () =>
+  pauseGame: () => {
+    const currentTime = performance.now();
     set({
       gameState: "paused",
       isNavigationActive: false,
-    }),
+      lastPauseTime: currentTime,
+    });
+  },
+
+  resumeGame: () => {
+    const currentTime = performance.now();
+    const { lastPauseTime, totalPausedTime } = get();
+    const pauseDuration = lastPauseTime ? currentTime - lastPauseTime : 0;
+
+    set({
+      gameState: "playing",
+      isNavigationActive: true,
+      totalPausedTime: totalPausedTime + pauseDuration,
+      lastPauseTime: null,
+    });
+  },
 
   endGame: () => {
     const currentStats = get().playerStats;
     const newHighScore = Math.max(currentStats.score, currentStats.highScore);
+
+    // Save high score to localStorage
+    if (newHighScore > currentStats.highScore) {
+      saveHighScore(newHighScore);
+    }
 
     set({
       gameState: "gameOver",
@@ -136,10 +193,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       gameState: "menu",
       isNavigationActive: false,
+      gameStartTime: null,
+      totalPausedTime: 0,
+      lastPauseTime: null,
       playerStats: {
         ...get().playerStats,
         score: 0,
-        survivalTime: 0,
       },
       gameSettings: defaultGameSettings,
       playerPosition: { x: 0, y: 0, z: 0 },
@@ -157,13 +216,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       },
     })),
 
-  updateSurvivalTime: (time: number) =>
-    set((state) => ({
-      playerStats: {
-        ...state.playerStats,
-        survivalTime: time,
-      },
-    })),
+  // Timing helpers
+  setGameStartTime: (time: number) => set({ gameStartTime: time }),
+
+  getAdjustedGameTime: (currentTime: number) => {
+    const { gameStartTime, totalPausedTime } = get();
+    if (!gameStartTime) return 0;
+    return currentTime - gameStartTime - totalPausedTime;
+  },
 
   // Difficulty progression
   increaseDifficulty: () => {

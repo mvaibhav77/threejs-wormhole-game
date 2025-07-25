@@ -40,6 +40,7 @@ function HomeScreen({ onStartGame }: HomeScreenProps) {
         <div className="game-instructions">
           <p>Use arrow keys to navigate through the tunnel</p>
           <p>Avoid hitting the obstacles to survive</p>
+          <p>Press ESC to pause during gameplay</p>
         </div>
 
         {/* Start Button */}

@@ -1,0 +1,40 @@
+.pause-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+
+  background: rgba(0, 0, 17, 0.8);
+  border: 2px solid rgba(136, 136, 255, 0.5);
+  border-radius: 8px;
+  color: #8888ff;
+  padding: 12px;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.pause-button:hover {
+  background: rgba(136, 136, 255, 0.2);
+  border-color: #8888ff;
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(136, 136, 255, 0.3);
+}
+
+.pause-button:active {
+  transform: scale(0.95);
+}
+
+.pause-button svg {
+  width: 24px;
+  height: 24px;
+}

@@ -1,20 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../store/gameStore";
 import "./GracePeriodTimer.css";
 
 function GracePeriodTimer() {
-  const { isNavigationActive, gameSettings } = useGameStore();
+  const { isNavigationActive, gameSettings, gameState } = useGameStore();
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [showTimer, setShowTimer] = useState(false);
+  const hasShownTimerThisGame = useRef(false);
+
+  useEffect(() => {
+    // Reset the flag when game state changes to playing (new game started)
+    if (gameState === "playing" && !isNavigationActive) {
+      hasShownTimerThisGame.current = false;
+    }
+  }, [gameState, isNavigationActive]);
 
   useEffect(() => {
     let startTime: number | null = null;
     let animationFrame: number;
 
     const updateTimer = (currentTime: number) => {
-      if (isNavigationActive && startTime === null) {
+      // Only show timer if navigation just became active AND we haven't shown it this game yet
+      if (
+        isNavigationActive &&
+        startTime === null &&
+        !hasShownTimerThisGame.current
+      ) {
         startTime = currentTime;
         setShowTimer(true);
+        hasShownTimerThisGame.current = true;
       }
 
       if (startTime !== null && isNavigationActive) {
@@ -28,13 +42,12 @@ function GracePeriodTimer() {
           animationFrame = requestAnimationFrame(updateTimer);
         }
       } else if (!isNavigationActive) {
-        startTime = null;
         setShowTimer(false);
         setRemainingTime(0);
       }
     };
 
-    if (isNavigationActive) {
+    if (isNavigationActive && !hasShownTimerThisGame.current) {
       animationFrame = requestAnimationFrame(updateTimer);
     }
 

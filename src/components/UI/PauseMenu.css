@@ -1,0 +1,128 @@
+.pause-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 17, 0.3);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pause-menu-content {
+  background: linear-gradient(
+    145deg,
+    rgba(0, 0, 17, 0.4),
+    rgba(17, 17, 34, 0.4)
+  );
+  border: 2px solid rgba(136, 136, 255, 0.3);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 0 30px rgba(136, 136, 255, 0.2),
+    inset 0 0 20px rgba(136, 136, 255, 0.1);
+}
+
+.pause-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #8888ff;
+  margin-bottom: 30px;
+  text-shadow: 0 0 20px rgba(136, 136, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.pause-stats {
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: rgba(136, 136, 255, 0.1);
+  border: 1px solid rgba(136, 136, 255, 0.2);
+  border-radius: 10px;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+}
+
+.stat-value {
+  color: #8888ff;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-shadow: 0 0 10px rgba(136, 136, 255, 0.4);
+}
+
+.pause-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.resume-button,
+.quit-button {
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 2px solid;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.resume-button {
+  color: #4caf50;
+  border-color: #4caf50;
+}
+
+.resume-button:hover {
+  background: #4caf50;
+  color: white;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+  transform: translateY(-2px);
+}
+
+.quit-button {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+.quit-button:hover {
+  background: #ff6b6b;
+  color: white;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+  transform: translateY(-2px);
+}
+
+.pause-controls {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.pause-controls .key {
+  color: #8888ff;
+  font-weight: bold;
+  padding: 2px 8px;
+  background: rgba(136, 136, 255, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(136, 136, 255, 0.3);
+}

@@ -2,14 +2,21 @@ import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Color, FogExp2, ACESFilmicToneMapping } from "three";
 import { useGameStore } from "./store/gameStore";
-import WormholeTunnel from "./3dComponents/WormholeTunnel";
+import { usePauseControls } from "./hooks/usePauseControls";
+import WormholeTunnel from "./components/3dComponents/WormholeTunnel";
 import HomeScreen from "./components/UI/HomeScreen";
 import GracePeriodTimer from "./components/UI/GracePeriodTimer";
 import PlayerIndicator from "./components/UI/PlayerIndicator";
+import PauseMenu from "./components/UI/PauseMenu";
+import PauseButton from "./components/UI/PauseButton";
+import ScoreDisplay from "./components/UI/ScoreDisplay";
 
 function App() {
   const { gameState } = useGameStore();
   const showHomeScreen = gameState === "menu";
+
+  // Enable pause controls
+  usePauseControls();
 
   const handleStartGame = () => {
     // Game start logic will be handled by the store
@@ -55,11 +62,20 @@ function App() {
       {/* UI Overlays */}
       {showHomeScreen && <HomeScreen onStartGame={handleStartGame} />}
 
+      {/* Pause Button */}
+      <PauseButton />
+
       {/* Grace Period Timer */}
       <GracePeriodTimer />
 
       {/* Player Indicator */}
       <PlayerIndicator />
+
+      {/* Pause Menu */}
+      <PauseMenu />
+
+      {/* Score Display */}
+      <ScoreDisplay />
     </div>
   );
 }

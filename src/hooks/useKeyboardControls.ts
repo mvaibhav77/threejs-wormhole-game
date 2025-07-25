@@ -5,6 +5,8 @@ interface KeyboardState {
   down: boolean;
   left: boolean;
   right: boolean;
+  escape: boolean;
+  space: boolean;
 }
 
 export const useKeyboardControls = () => {
@@ -13,6 +15,8 @@ export const useKeyboardControls = () => {
     down: false,
     left: false,
     right: false,
+    escape: false,
+    space: false,
   });
 
   useEffect(() => {
@@ -34,6 +38,12 @@ export const useKeyboardControls = () => {
         case "KeyD":
           keysPressed.current.right = true;
           break;
+        case "Escape":
+          keysPressed.current.escape = true;
+          break;
+        case "Space":
+          keysPressed.current.space = true;
+          break;
       }
     };
 
@@ -54,6 +64,12 @@ export const useKeyboardControls = () => {
         case "ArrowRight":
         case "KeyD":
           keysPressed.current.right = false;
+          break;
+        case "Escape":
+          keysPressed.current.escape = false;
+          break;
+        case "Space":
+          keysPressed.current.space = false;
           break;
       }
     };

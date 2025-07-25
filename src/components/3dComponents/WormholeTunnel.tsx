@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   TubeGeometry,
@@ -7,8 +7,8 @@ import {
   Vector3,
   Color,
 } from "three";
-import { useGameStore } from "../store/gameStore";
-import { useKeyboardControls } from "../hooks/useKeyboardControls";
+import { useGameStore } from "../../store/gameStore";
+import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import spline from "./spline";
 
 function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
@@ -18,15 +18,33 @@ function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
     gameSettings,
     playerPosition,
     updatePlayerPosition,
+    updateScore,
+    getAdjustedGameTime,
+    setGameStartTime,
+    gameStartTime,
   } = useGameStore();
   const keys = useKeyboardControls();
+  const lastScoreUpdateTime = useRef<number>(0);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     // Only animate camera if navigation is active
-    if (!isNavigationActive) return;
+    if (!isNavigationActive) {
+      return;
+    }
 
-    // Calculate tunnel path position
-    const time = state.clock.elapsedTime * gameSettings.currentSpeed;
+    // Set game start time on first frame of gameplay
+    if (gameStartTime === null) {
+      setGameStartTime(performance.now());
+      lastScoreUpdateTime.current = 0; // Reset score tracking for new game
+      return; // Skip this frame to allow the start time to be set
+    }
+
+    // Use adjusted game time for pause-aware calculations
+    const gameTime = getAdjustedGameTime(performance.now());
+    const gameTimeInSeconds = gameTime / 1000;
+
+    // Calculate tunnel path position using adjusted game time
+    const time = gameTimeInSeconds * gameSettings.currentSpeed;
     const loopTime = 10; // Duration of one loop in seconds
     const p = (time % loopTime) / loopTime; // Normalize t to [0, 1]
 
@@ -70,6 +88,14 @@ function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
 
     // Update player position in store
     updatePlayerPosition(screenX, screenY, playerPosition.z);
+
+    // Update score based on time survived (2 points per second)
+    const currentSecond = Math.floor(gameTimeInSeconds);
+    if (currentSecond > lastScoreUpdateTime.current) {
+      const pointsToAdd = (currentSecond - lastScoreUpdateTime.current) * 2;
+      updateScore(pointsToAdd);
+      lastScoreUpdateTime.current = currentSecond;
+    }
 
     // Calculate final camera position using tunnel's local coordinate system
     const cameraOffset = new Vector3()
@@ -116,7 +142,8 @@ interface BoxData {
 }
 
 function TunnelBoxes() {
-  const { gameSettings, isNavigationActive } = useGameStore();
+  const { gameSettings, isNavigationActive, getAdjustedGameTime } =
+    useGameStore();
   const tubeGeometry = useMemo(() => {
     return new TubeGeometry(spline, 222, 0.45, 16, true); // Match the wireframe tunnel radius
   }, []);
@@ -155,23 +182,18 @@ function TunnelBoxes() {
   }, [tubeGeometry, gameSettings.obstacleCount]);
 
   // Hide obstacles for the first 3 seconds of gameplay
-  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
   const [showObstacles, setShowObstacles] = useState(false);
 
-  useFrame((state) => {
-    if (isNavigationActive && gameStartTime === null) {
-      setGameStartTime(state.clock.elapsedTime);
-    }
-
-    if (gameStartTime !== null) {
-      const timeSinceStart = state.clock.elapsedTime - gameStartTime;
-      setShowObstacles(timeSinceStart >= gameSettings.gracePerodSeconds); // Use configurable grace period
-    }
-
+  useFrame(() => {
     if (!isNavigationActive) {
-      setGameStartTime(null);
       setShowObstacles(false);
+      return;
     }
+
+    // Use adjusted game time for pause-aware grace period
+    const gameTime = getAdjustedGameTime(performance.now());
+    const gameTimeInSeconds = gameTime / 1000;
+    setShowObstacles(gameTimeInSeconds >= gameSettings.gracePerodSeconds); // Use configurable grace period
   });
 
   return (

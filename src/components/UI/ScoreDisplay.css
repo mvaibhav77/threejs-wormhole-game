@@ -1,0 +1,23 @@
+.score-display {
+  position: fixed;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  pointer-events: none;
+}
+
+.score-value {
+  color: #8888ff;
+  font-weight: bold;
+  font-size: 3rem;
+  text-shadow: 0 0 20px rgba(136, 136, 255, 0.8),
+    0 0 40px rgba(136, 136, 255, 0.4);
+  font-family: "Courier New", monospace;
+  text-align: center;
+  background: rgba(0, 0, 17, 0.7);
+  padding: 15px 30px;
+  border-radius: 15px;
+  border: 2px solid rgba(136, 136, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
