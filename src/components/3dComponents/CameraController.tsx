@@ -31,12 +31,18 @@ export function CameraController({
 
   const keys = useKeyboardControls();
   const lastScoreUpdateTime = useRef<number>(0);
+  const lastScoredDistance = useRef<number>(0);
   const startingOffset = useRef<number>(Math.random());
   const lastGameState = useRef<string>(gameState);
+  const accumulatedDistance = useRef<number>(0);
+  const lastFrameTime = useRef<number>(0);
 
   // Reset starting offset for new games
   if (lastGameState.current === "menu" && gameState === "playing") {
     startingOffset.current = Math.random();
+    accumulatedDistance.current = 0;
+    lastFrameTime.current = 0;
+    lastScoredDistance.current = 0;
   }
   lastGameState.current = gameState;
 
@@ -44,6 +50,9 @@ export function CameraController({
     useCollisionDetection(boxPositions, gameSettings);
 
   useFrame((_, delta) => {
+    // Get fresh gameSettings inside useFrame to avoid closure issues
+    const currentGameSettings = useGameStore.getState().gameSettings;
+
     // Reset collision state when game is not active or when returning to menu
     if (!isNavigationActive || gameState === "menu") {
       if (collisionState.current.hasCollided) {
@@ -53,12 +62,12 @@ export function CameraController({
     }
 
     // Handle collision state and effects
-    const currentTime = performance.now();
+    const collisionCurrentTime = performance.now();
 
     // Check if we're in collision state
     if (collisionState.current.hasCollided) {
       const timeSinceCollision =
-        currentTime - collisionState.current.collisionTime;
+        collisionCurrentTime - collisionState.current.collisionTime;
 
       // Keep red background for 2 seconds
       if (timeSinceCollision < 2000) {
@@ -85,17 +94,28 @@ export function CameraController({
     if (gameStartTime === null) {
       setGameStartTime(performance.now());
       lastScoreUpdateTime.current = 0;
+      lastFrameTime.current = performance.now();
+      lastScoredDistance.current = 0;
       return;
     }
 
-    // Use adjusted game time for pause-aware calculations
-    const gameTime = getAdjustedGameTime(performance.now());
-    const gameTimeInSeconds = gameTime / 1000;
+    // Calculate distance traveled this frame based on current speed
+    const currentTime = performance.now();
+    if (lastFrameTime.current > 0) {
+      const deltaTime = (currentTime - lastFrameTime.current) / 1000; // Convert to seconds
+      const distanceThisFrame = deltaTime * currentGameSettings.speed;
+      accumulatedDistance.current += distanceThisFrame;
+    }
+    lastFrameTime.current = currentTime;
 
-    // Calculate tunnel path position using adjusted game time
-    const time = gameTimeInSeconds * gameSettings.currentSpeed;
+    // Calculate tunnel path position using accumulated distance
     const loopTime = 10; // Duration of one loop in seconds
-    const p = (time / loopTime + startingOffset.current) % 1;
+    const p =
+      (accumulatedDistance.current / loopTime + startingOffset.current) % 1;
+
+    // Calculate game time for scoring and collision detection (still needed for these systems)
+    const gameTime = getAdjustedGameTime(currentTime);
+    const gameTimeInSeconds = gameTime / 1000;
 
     // Get tunnel center and direction
     const tunnelCenter = tubeGeometry.parameters.path.getPointAt(p);
@@ -123,7 +143,7 @@ export function CameraController({
     if (keys.down) screenY -= movementSpeed;
 
     // Convert screen coordinates to circular tunnel coordinates
-    const maxRadius = 0.4;
+    const maxRadius = 0.3;
 
     // Calculate distance from center
     const distanceFromCenter = Math.sqrt(screenX * screenX + screenY * screenY);
@@ -149,12 +169,15 @@ export function CameraController({
       return;
     }
 
-    // Update score based on time survived (2 points per second)
-    const currentSecond = Math.floor(gameTimeInSeconds);
-    if (currentSecond > lastScoreUpdateTime.current) {
-      const pointsToAdd = (currentSecond - lastScoreUpdateTime.current) * 2;
+    // Update score based on distance traveled (10 points per unit distance)
+    const distanceTraveled = accumulatedDistance.current;
+    const distanceForScoring = Math.floor(distanceTraveled * 10); // 10 points per unit distance
+    const lastScoreDistance = Math.floor(lastScoredDistance.current * 10);
+
+    if (distanceForScoring > lastScoreDistance) {
+      const pointsToAdd = distanceForScoring - lastScoreDistance;
       updateScore(pointsToAdd);
-      lastScoreUpdateTime.current = currentSecond;
+      lastScoredDistance.current = distanceTraveled;
     }
 
     // Update difficulty progression based on game time

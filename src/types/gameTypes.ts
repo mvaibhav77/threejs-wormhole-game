@@ -14,14 +14,12 @@ export interface PlayerStats {
 
 // Game configuration
 export interface GameSettings {
-  baseSpeed: number;
-  currentSpeed: number;
+  speed: number;
   obstacleCount: number;
   maxSpeed: number;
   maxObstacles: number;
   speedIncreaseRate: number;
   obstacleIncreaseRate: number;
-  gracePerodSeconds: number;
   playerMovementSpeed: number;
   movementBounds: number;
 }

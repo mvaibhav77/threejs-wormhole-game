@@ -47,7 +47,6 @@ export interface GameStore {
   getAdjustedGameTime: (currentTime: number) => number;
 
   // Difficulty progression
-  increaseDifficulty: () => void;
   resetDifficulty: () => void;
 
   // Data management

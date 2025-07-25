@@ -21,7 +21,6 @@ export interface GameSettings {
   maxObstacles: number;
   speedIncreaseRate: number;
   obstacleIncreaseRate: number;
-  gracePerodSeconds: number;
   playerMovementSpeed: number;
   movementBounds: number;
 }

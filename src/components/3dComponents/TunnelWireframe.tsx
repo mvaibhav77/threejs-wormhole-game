@@ -4,7 +4,7 @@ import spline from "./spline";
 
 export function TunnelWireframe() {
   const tubeGeometry = useMemo(() => {
-    return new TubeGeometry(spline, 222, 0.45, 16, true);
+    return new TubeGeometry(spline, 222, 0.4, 16, true);
   }, []);
 
   const edges = useMemo(() => {

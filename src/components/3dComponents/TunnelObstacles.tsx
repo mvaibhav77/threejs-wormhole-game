@@ -5,6 +5,7 @@ import { useGameStore } from "../../store/gameStore";
 import { useObstacleGeneration } from "../../hooks/useObstacleGeneration";
 import { CameraController } from "./CameraController";
 import spline from "./spline";
+import { GRACE_PERIOD_SECONDS } from "../../types";
 
 export function TunnelObstacles() {
   const { gameSettings, isNavigationActive, getAdjustedGameTime, gameState } =
@@ -45,7 +46,7 @@ export function TunnelObstacles() {
     // Use adjusted game time for pause-aware grace period
     const gameTime = getAdjustedGameTime(performance.now());
     const gameTimeInSeconds = gameTime / 1000;
-    setShowObstacles(gameTimeInSeconds >= gameSettings.gracePerodSeconds);
+    setShowObstacles(gameTimeInSeconds >= GRACE_PERIOD_SECONDS);
   });
 
   return (

@@ -5,6 +5,10 @@ import {
   PlayerStats,
   defaultGameSettings,
   createDefaultPlayerStats,
+  INITIAL_OBSTACLE_COUNT,
+  BASE_SPEED,
+  OBSTACLE_INCREASE_PERIOD,
+  SPEED_INCREASE_PERIOD,
 } from "../types";
 
 // Re-export types for easier access by components
@@ -206,20 +210,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateDifficulty: (gameTimeInSeconds: number) =>
     set((state) => {
       const { gameSettings } = state;
-      const { maxObstacles, obstacleIncreaseRate } = gameSettings;
+      const {
+        maxObstacles,
+        obstacleIncreaseRate,
+        speedIncreaseRate,
+        maxSpeed,
+      } = gameSettings;
 
       // Calculate new obstacle count based on time (increase every 15 seconds)
       const obstacleMultiplier =
-        Math.floor(gameTimeInSeconds / 15) * obstacleIncreaseRate;
+        Math.floor(gameTimeInSeconds / OBSTACLE_INCREASE_PERIOD) *
+        obstacleIncreaseRate;
       const newObstacleCount = Math.min(
-        defaultGameSettings.obstacleCount + obstacleMultiplier,
+        INITIAL_OBSTACLE_COUNT + obstacleMultiplier,
         maxObstacles
       );
+
+      // Calculate new speed based on time (increase every 20 seconds)
+      const speedMultiplier =
+        Math.floor(gameTimeInSeconds / SPEED_INCREASE_PERIOD) *
+        speedIncreaseRate;
+      const newSpeed = Math.min(BASE_SPEED + speedMultiplier, maxSpeed);
 
       return {
         gameSettings: {
           ...gameSettings,
           obstacleCount: newObstacleCount,
+          speed: newSpeed,
         },
       };
     }),
@@ -231,22 +248,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameStartTime, totalPausedTime } = get();
     if (!gameStartTime) return 0;
     return currentTime - gameStartTime - totalPausedTime;
-  },
-
-  // Difficulty progression - only obstacles
-  increaseDifficulty: () => {
-    const { gameSettings } = get();
-    const newObstacleCount = Math.min(
-      gameSettings.obstacleCount + gameSettings.obstacleIncreaseRate,
-      gameSettings.maxObstacles
-    );
-
-    set({
-      gameSettings: {
-        ...gameSettings,
-        obstacleCount: newObstacleCount,
-      },
-    });
   },
 
   resetDifficulty: () =>

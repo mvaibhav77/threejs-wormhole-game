@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../store/gameStore";
 import "./GracePeriodTimer.css";
+import { GRACE_PERIOD_SECONDS, INITIAL_OBSTACLE_COUNT } from "../../types";
 
 function GracePeriodTimer() {
   const { isNavigationActive, gameSettings, gameState } = useGameStore();
@@ -36,7 +37,7 @@ function GracePeriodTimer() {
 
       if (startTime !== null && isNavigationActive) {
         const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
-        const remaining = Math.max(0, gameSettings.gracePerodSeconds - elapsed);
+        const remaining = Math.max(0, GRACE_PERIOD_SECONDS - elapsed);
         setRemainingTime(remaining);
 
         if (remaining <= 0) {
@@ -59,7 +60,7 @@ function GracePeriodTimer() {
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [isNavigationActive, gameSettings.gracePerodSeconds]);
+  }, [isNavigationActive, GRACE_PERIOD_SECONDS]);
 
   if (!showTimer || remainingTime <= 0) {
     return null;
