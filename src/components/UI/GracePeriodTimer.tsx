@@ -51,11 +51,7 @@ function GracePeriodTimer() {
 
   return (
     <div className="grace-period-timer">
-      <div className="timer-content">
-        <div className="timer-text">Obstacles incoming in</div>
-        <div className="timer-countdown">{Math.ceil(remainingTime)}</div>
-        <div className="timer-subtext">Get ready!</div>
-      </div>
+      <div className="timer-countdown">{Math.ceil(remainingTime)}</div>
     </div>
   );
 }

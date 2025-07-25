@@ -19,29 +19,12 @@
   }
 }
 
-.timer-content {
-  background: rgba(0, 0, 17, 0.9);
-  border: 2px solid #ff6b6b;
-  border-radius: 15px;
-  padding: 30px;
-  box-shadow: 0 0 30px rgba(255, 107, 107, 0.6);
-  min-width: 200px;
-}
-
-.timer-text {
-  color: #ffcccc;
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
 .timer-countdown {
-  color: #ff6b6b;
-  font-size: 4rem;
+  color: #7fff7f;
+  font-size: 10rem;
   font-weight: bold;
   margin: 20px 0;
-  text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+  text-shadow: 0 0 20px rgba(123, 255, 0, 0.8);
   animation: countdownPulse 1s ease-in-out infinite;
 }
 
@@ -49,38 +32,18 @@
   0%,
   100% {
     transform: scale(1);
-    text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+    text-shadow: 0 0 20px rgba(123, 255, 0, 0.8);
   }
   50% {
     transform: scale(1.1);
-    text-shadow: 0 0 30px rgba(255, 107, 107, 1);
+    text-shadow: 0 0 30px rgba(123, 255, 0, 1);
   }
-}
-
-.timer-subtext {
-  color: #ff9999;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .timer-content {
-    padding: 20px;
-    min-width: 150px;
-  }
-
-  .timer-text {
-    font-size: 1rem;
-  }
-
   .timer-countdown {
     font-size: 3rem;
     margin: 15px 0;
-  }
-
-  .timer-subtext {
-    font-size: 0.8rem;
   }
 }
