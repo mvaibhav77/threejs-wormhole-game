@@ -21,6 +21,8 @@ interface GameSettings {
   speedIncreaseRate: number;
   obstacleIncreaseRate: number;
   gracePerodSeconds: number; // Grace period before obstacles appear
+  playerMovementSpeed: number; // How fast the player can move
+  movementBounds: number; // Maximum distance from tunnel center
 }
 
 // Main game store interface
@@ -68,6 +70,8 @@ const defaultGameSettings: GameSettings = {
   speedIncreaseRate: 0.02,
   obstacleIncreaseRate: 5,
   gracePerodSeconds: 3, // 3 seconds before obstacles appear
+  playerMovementSpeed: 0.03, // Speed of player movement
+  movementBounds: 0.4, // Maximum distance from tunnel center
 };
 
 // Default player stats

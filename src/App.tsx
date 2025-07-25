@@ -1,11 +1,11 @@
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
-import { OrbitControls } from "@react-three/drei";
 import { Color, FogExp2, ACESFilmicToneMapping } from "three";
 import { useGameStore } from "./store/gameStore";
 import WormholeTunnel from "./3dComponents/WormholeTunnel";
 import HomeScreen from "./components/UI/HomeScreen";
 import GracePeriodTimer from "./components/UI/GracePeriodTimer";
+import PlayerIndicator from "./components/UI/PlayerIndicator";
 
 function App() {
   const { gameState } = useGameStore();
@@ -38,9 +38,6 @@ function App() {
         {/* Lighting */}
         <hemisphereLight args={[0xffffff, 0x444444, 1]} />
 
-        {/* Controls */}
-        <OrbitControls enableDamping dampingFactor={0.03} />
-
         {/* Main Wormhole Component */}
         <WormholeTunnel />
 
@@ -60,6 +57,9 @@ function App() {
 
       {/* Grace Period Timer */}
       <GracePeriodTimer />
+
+      {/* Player Indicator */}
+      <PlayerIndicator />
     </div>
   );
 }

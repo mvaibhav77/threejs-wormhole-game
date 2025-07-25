@@ -8,25 +8,81 @@ import {
   Color,
 } from "three";
 import { useGameStore } from "../store/gameStore";
+import { useKeyboardControls } from "../hooks/useKeyboardControls";
 import spline from "./spline";
 
 function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
   const { camera } = useThree();
-  const { isNavigationActive, gameSettings } = useGameStore();
+  const {
+    isNavigationActive,
+    gameSettings,
+    playerPosition,
+    updatePlayerPosition,
+  } = useGameStore();
+  const keys = useKeyboardControls();
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     // Only animate camera if navigation is active
     if (!isNavigationActive) return;
 
+    // Calculate tunnel path position
     const time = state.clock.elapsedTime * gameSettings.currentSpeed;
     const loopTime = 10; // Duration of one loop in seconds
     const p = (time % loopTime) / loopTime; // Normalize t to [0, 1]
 
-    const pos = tubeGeometry.parameters.path.getPointAt(p);
-    const lookAt = tubeGeometry.parameters.path.getPointAt((p + 0.01) % 1); // Look ahead slightly
+    // Get tunnel center and direction
+    const tunnelCenter = tubeGeometry.parameters.path.getPointAt(p);
+    const tunnelDirection = tubeGeometry.parameters.path
+      .getTangentAt(p)
+      .normalize();
 
-    camera.position.copy(pos);
-    camera.lookAt(lookAt);
+    // Create local coordinate system for the tunnel cross-section
+    const worldUp = new Vector3(0, 1, 0);
+    const tunnelRight = new Vector3()
+      .crossVectors(tunnelDirection, worldUp)
+      .normalize();
+    const tunnelUp = new Vector3()
+      .crossVectors(tunnelRight, tunnelDirection)
+      .normalize();
+
+    // Handle player movement in screen-relative coordinates
+    let screenX = playerPosition.x;
+    let screenY = playerPosition.y;
+
+    const movementSpeed = gameSettings.playerMovementSpeed * delta * 60;
+    if (keys.left) screenX -= movementSpeed;
+    if (keys.right) screenX += movementSpeed;
+    if (keys.up) screenY += movementSpeed;
+    if (keys.down) screenY -= movementSpeed;
+
+    // Convert screen coordinates to circular tunnel coordinates
+    const maxRadius = 0.4; // Back to reasonable movement radius
+
+    // Calculate distance from center
+    const distanceFromCenter = Math.sqrt(screenX * screenX + screenY * screenY);
+
+    // Constrain movement to circular boundary
+    if (distanceFromCenter > maxRadius) {
+      const angle = Math.atan2(screenY, screenX);
+      screenX = Math.cos(angle) * maxRadius;
+      screenY = Math.sin(angle) * maxRadius;
+    }
+
+    // Update player position in store
+    updatePlayerPosition(screenX, screenY, playerPosition.z);
+
+    // Calculate final camera position using tunnel's local coordinate system
+    const cameraOffset = new Vector3()
+      .addScaledVector(tunnelRight, screenX)
+      .addScaledVector(tunnelUp, screenY);
+
+    const finalCameraPosition = tunnelCenter.clone().add(cameraOffset);
+
+    // Look ahead along the tunnel path (no tilting)
+    const lookAtPoint = tubeGeometry.parameters.path.getPointAt((p + 0.01) % 1);
+
+    camera.position.copy(finalCameraPosition);
+    camera.lookAt(lookAtPoint);
   });
 
   return null;
@@ -34,7 +90,7 @@ function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
 
 function TunnelWireframe() {
   const tubeGeometry = useMemo(() => {
-    return new TubeGeometry(spline, 222, 0.66, 16, true);
+    return new TubeGeometry(spline, 222, 0.45, 16, true);
   }, []);
 
   const edges = useMemo(() => {
@@ -62,7 +118,7 @@ interface BoxData {
 function TunnelBoxes() {
   const { gameSettings, isNavigationActive } = useGameStore();
   const tubeGeometry = useMemo(() => {
-    return new TubeGeometry(spline, 222, 0.66, 16, true);
+    return new TubeGeometry(spline, 222, 0.45, 16, true); // Match the wireframe tunnel radius
   }, []);
 
   const boxData = useMemo(() => {

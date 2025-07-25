@@ -1,0 +1,98 @@
+.player-indicator-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+
+.crosshair-horizontal,
+.crosshair-vertical {
+  position: absolute;
+  background-color: rgba(136, 136, 255, 0.8);
+  box-shadow: 0 0 4px rgba(136, 136, 255, 0.6);
+}
+
+.crosshair-horizontal {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.crosshair-vertical {
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.movement-indicators {
+  position: absolute;
+  bottom: 80px;
+  right: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.movement-row {
+  display: flex;
+  gap: 40px;
+}
+
+.movement-arrow {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: rgba(136, 136, 255, 0.4);
+  border: 2px solid rgba(136, 136, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 0, 17, 0.6);
+  transition: all 0.1s ease;
+}
+
+.movement-arrow.active {
+  color: rgba(136, 136, 255, 1);
+  border-color: rgba(136, 136, 255, 0.8);
+  background: rgba(136, 136, 255, 0.2);
+  box-shadow: 0 0 8px rgba(136, 136, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.position-debug {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: rgba(136, 136, 255, 0.8);
+  font-family: monospace;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.position-debug span {
+  background: rgba(0, 0, 17, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(136, 136, 255, 0.3);
+}
