@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { JSX, useEffect, useRef } from "react";
 import {
   PerspectiveCamera,
   Scene,
@@ -29,12 +29,12 @@ import {
 } from "three/examples/jsm/Addons.js";
 import spline from "./3dComponents/spline";
 
-const w = window.innerWidth;
-const h = window.innerHeight;
+const w: number = window.innerWidth;
+const h: number = window.innerHeight;
 
-function App() {
-  const sceneRef = useRef(null);
-  const rendererRef = useRef(null); // Ref to store the renderer
+function App(): JSX.Element {
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const rendererRef = useRef<WebGLRenderer | null>(null); // Ref to store the renderer
 
   useEffect(() => {
     const currentRef = sceneRef.current; // Capture the current ref
@@ -142,7 +142,7 @@ function App() {
     scene.add(hemilight);
 
     // Fly through the tunnel
-    function updateCamera(t) {
+    function updateCamera(t: number): void {
       const time = t * 0.12;
       const loopTime = 10 * 1000; // Duration of one loop in seconds
       const p = (time % loopTime) / loopTime; // Normalize t to [0, 1]
@@ -153,10 +153,10 @@ function App() {
     }
 
     // Animation loop
-    function animate(t = 0) {
+    function animate(t: number = 0): void {
       requestAnimationFrame(animate);
       updateCamera(t);
-      composer.render(scene, camera);
+      composer.render();
       controls.update();
     }
 
