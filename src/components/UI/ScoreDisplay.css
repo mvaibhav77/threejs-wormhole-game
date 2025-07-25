@@ -5,6 +5,10 @@
   transform: translateX(-50%);
   z-index: 200;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .score-value {
@@ -20,4 +24,39 @@
   border-radius: 15px;
   border: 2px solid rgba(136, 136, 255, 0.3);
   backdrop-filter: blur(10px);
+}
+
+.difficulty-indicators {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.difficulty-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 17, 0.6);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(136, 136, 255, 0.2);
+  backdrop-filter: blur(5px);
+  min-width: 70px;
+}
+
+.difficulty-label {
+  color: #ccccff;
+  font-size: 0.8rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.difficulty-value {
+  color: #ffaa44;
+  font-weight: bold;
+  font-size: 1rem;
+  text-shadow: 0 0 10px rgba(255, 170, 68, 0.6);
+  font-family: "Courier New", monospace;
 }

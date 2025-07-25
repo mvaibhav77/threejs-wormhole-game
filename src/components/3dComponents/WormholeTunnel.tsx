@@ -26,6 +26,7 @@ function CameraAnimation({
     playerPosition,
     updatePlayerPosition,
     updateScore,
+    updateDifficulty,
     getAdjustedGameTime,
     setGameStartTime,
     gameStartTime,
@@ -197,6 +198,9 @@ function CameraAnimation({
       lastScoreUpdateTime.current = currentSecond;
     }
 
+    // Update difficulty progression based on game time
+    updateDifficulty(gameTimeInSeconds);
+
     // Calculate final camera position using tunnel's local coordinate system
     const cameraOffset = new Vector3()
       .addScaledVector(tunnelRight, screenX)
@@ -247,47 +251,82 @@ function TunnelBoxes() {
     return new TubeGeometry(spline, 222, 0.45, 16, true); // Match the wireframe tunnel radius
   }, []);
 
-  // Store the starting offset for this game session - regenerate when game restarts
-  const gameStartingOffset = useRef<number>(Math.random());
+  // Store the starting offset for this game session - only regenerate when game restarts
   const lastGameState = useRef<string>(gameState);
+  const [currentGameOffset, setCurrentGameOffset] = useState<number>(
+    Math.random()
+  );
 
   // Check if game state changed to playing from menu (new game started)
   if (lastGameState.current === "menu" && gameState === "playing") {
-    gameStartingOffset.current = Math.random(); // New random start for new game
+    setCurrentGameOffset(Math.random()); // New random start for new game
   }
   lastGameState.current = gameState;
 
-  const { boxData, boxPositions } = useMemo(() => {
-    const numBoxes = gameSettings.obstacleCount;
+  // Generate boxes based on current obstacle count - starts small and grows
+  const { currentBoxData, currentBoxPositions } = useMemo(() => {
+    const maxPossibleBoxes = 120; // Total possible boxes for distribution
+    const currentBoxCount = gameSettings.obstacleCount; // Use current obstacle count
     const size = 0.075;
     const boxGeo = new BoxGeometry(size, size, size);
     const boxes: BoxData[] = [];
     const positions: Vector3[] = [];
 
-    for (let i = 0; i < numBoxes; i += 1) {
-      // Use deterministic "random" for consistent positioning
-      const randomOffset = (Math.sin(i * 12.9898) * 43758.5453) % 1;
-      const p =
-        (i / numBoxes + randomOffset * 0.1 + gameStartingOffset.current) % 1;
-      const pos = tubeGeometry.parameters.path.getPointAt(p);
+    // Generate indices for even distribution across the tunnel
+    const selectedIndices: number[] = [];
+
+    // Create evenly spaced indices with some randomization to avoid patterns
+    for (let i = 0; i < currentBoxCount; i++) {
+      // Calculate base position with even spacing
+      const basePosition = (i / currentBoxCount) * maxPossibleBoxes;
+
+      // Add some deterministic randomness based on the position
+      const randomSeed = Math.sin(i * 17.32 + currentGameOffset * 100) * 0.5;
+      const spacing = maxPossibleBoxes / currentBoxCount;
+      const jitter = randomSeed * spacing * 0.3; // 30% jitter
+
+      // Ensure we stay within bounds and avoid duplicates
+      let index = Math.floor(basePosition + jitter);
+      index = Math.max(0, Math.min(maxPossibleBoxes - 1, index));
+
+      // Avoid duplicates by checking if index is already used
+      while (
+        selectedIndices.includes(index) &&
+        selectedIndices.length < maxPossibleBoxes
+      ) {
+        index = (index + 1) % maxPossibleBoxes;
+      }
+
+      selectedIndices.push(index);
+    }
+
+    // Generate boxes using the selected indices for consistent distribution
+    selectedIndices.forEach((boxIndex) => {
+      // Use deterministic "random" for consistent positioning based on original index
+      const randomOffset = (Math.sin(boxIndex * 12.9898) * 43758.5453) % 1;
+      // Distribute boxes evenly around the tunnel using the original max distribution
+      const p = (boxIndex / maxPossibleBoxes + randomOffset * 0.1) % 1;
+      const finalP = (p + currentGameOffset) % 1;
+      const pos = tubeGeometry.parameters.path.getPointAt(finalP);
 
       // Position boxes in a circular pattern around the tunnel
-      const angle = (i * 3.5) % (Math.PI * 2);
+      const angle = (boxIndex * 3.5) % (Math.PI * 2);
       const radius = 0.35;
       pos.x += Math.cos(angle) * radius;
       pos.z += Math.sin(angle) * radius;
 
+      // Use deterministic rotation based on original box index
       const rotation = new Vector3(
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-        Math.random() * Math.PI
+        ((Math.sin(boxIndex * 7.319) * 43758.5453) % 1) * Math.PI,
+        ((Math.sin(boxIndex * 13.547) * 43758.5453) % 1) * Math.PI,
+        ((Math.sin(boxIndex * 19.123) * 43758.5453) % 1) * Math.PI
       );
 
-      const color = new Color().setHSL(0.7 - p, 1, 0.5);
+      const color = new Color().setHSL(0.7 - finalP, 1, 0.5);
       const edges = new EdgesGeometry(boxGeo, 0.2);
 
       boxes.push({
-        id: i,
+        id: boxIndex, // Use original index for consistent identification
         position: pos.clone(),
         rotation,
         color,
@@ -296,10 +335,10 @@ function TunnelBoxes() {
 
       // Store position for collision detection
       positions.push(pos.clone());
-    }
+    });
 
-    return { boxData: boxes, boxPositions: positions };
-  }, [tubeGeometry, gameSettings.obstacleCount]);
+    return { currentBoxData: boxes, currentBoxPositions: positions };
+  }, [tubeGeometry, currentGameOffset, gameSettings.obstacleCount]); // Regenerate when obstacle count changes
 
   // Hide obstacles for the first 3 seconds of gameplay
   const [showObstacles, setShowObstacles] = useState(false);
@@ -321,12 +360,12 @@ function TunnelBoxes() {
       {/* Camera Animation with collision detection */}
       <CameraAnimation
         tubeGeometry={tubeGeometry}
-        boxPositions={boxPositions}
+        boxPositions={currentBoxPositions}
       />
 
       {/* Render obstacles */}
       {showObstacles &&
-        boxData.map((box) => (
+        currentBoxData.map((box) => (
           <lineSegments
             key={box.id}
             geometry={box.edges}

@@ -99,6 +99,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStartTime: null, // Will be set by the game component
       totalPausedTime: 0,
       lastPauseTime: null,
+      gameSettings: { ...defaultGameSettings }, // Reset difficulty to base level
       playerStats: {
         ...currentStats,
         score: 0,
@@ -201,6 +202,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
       },
     })),
 
+  // Progressive difficulty system - only obstacle increases
+  updateDifficulty: (gameTimeInSeconds: number) =>
+    set((state) => {
+      const { gameSettings } = state;
+      const { maxObstacles, obstacleIncreaseRate } = gameSettings;
+
+      // Calculate new obstacle count based on time (increase every 15 seconds)
+      const obstacleMultiplier =
+        Math.floor(gameTimeInSeconds / 15) * obstacleIncreaseRate;
+      const newObstacleCount = Math.min(
+        defaultGameSettings.obstacleCount + obstacleMultiplier,
+        maxObstacles
+      );
+
+      return {
+        gameSettings: {
+          ...gameSettings,
+          obstacleCount: newObstacleCount,
+        },
+      };
+    }),
+
   // Timing helpers
   setGameStartTime: (time: number) => set({ gameStartTime: time }),
 
@@ -210,13 +233,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return currentTime - gameStartTime - totalPausedTime;
   },
 
-  // Difficulty progression
+  // Difficulty progression - only obstacles
   increaseDifficulty: () => {
     const { gameSettings } = get();
-    const newSpeed = Math.min(
-      gameSettings.currentSpeed + gameSettings.speedIncreaseRate,
-      gameSettings.maxSpeed
-    );
     const newObstacleCount = Math.min(
       gameSettings.obstacleCount + gameSettings.obstacleIncreaseRate,
       gameSettings.maxObstacles
@@ -225,7 +244,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       gameSettings: {
         ...gameSettings,
-        currentSpeed: newSpeed,
         obstacleCount: newObstacleCount,
       },
     });

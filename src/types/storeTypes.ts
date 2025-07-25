@@ -40,6 +40,7 @@ export interface GameStore {
 
   updatePlayerPosition: (x: number, y: number, z: number) => void;
   updateScore: (points: number) => void;
+  updateDifficulty: (gameTimeInSeconds: number) => void;
 
   // Timing helpers
   setGameStartTime: (time: number) => void;
