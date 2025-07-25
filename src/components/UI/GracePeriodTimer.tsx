@@ -7,13 +7,16 @@ function GracePeriodTimer() {
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [showTimer, setShowTimer] = useState(false);
   const hasShownTimerThisGame = useRef(false);
+  const previousGameState = useRef<string>("menu");
 
   useEffect(() => {
-    // Reset the flag when game state changes to playing (new game started)
-    if (gameState === "playing" && !isNavigationActive) {
+    // Reset the flag when we transition from "menu" TO "playing" (new game started)
+    // This ensures we don't reset on pause->resume transitions
+    if (gameState === "playing" && previousGameState.current === "menu") {
       hasShownTimerThisGame.current = false;
     }
-  }, [gameState, isNavigationActive]);
+    previousGameState.current = gameState;
+  }, [gameState]);
 
   useEffect(() => {
     let startTime: number | null = null;

@@ -11,7 +11,7 @@ import PauseMenu from "./components/UI/PauseMenu";
 import PauseButton from "./components/UI/PauseButton";
 import ScoreDisplay from "./components/UI/ScoreDisplay";
 
-function App() {
+function Game() {
   const { gameState } = useGameStore();
   const showHomeScreen = gameState === "menu";
 
@@ -80,4 +80,4 @@ function App() {
   );
 }
 
-export default App;
+export default Game;

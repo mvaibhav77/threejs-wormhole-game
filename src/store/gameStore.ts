@@ -1,89 +1,23 @@
 import { create } from "zustand";
+import {
+  GameStore,
+  GameState,
+  PlayerStats,
+  defaultGameSettings,
+  createDefaultPlayerStats,
+} from "../types";
 
-// Game states
-export type GameState = "menu" | "playing" | "paused" | "gameOver";
+// Re-export types for easier access by components
+export type {
+  GameState,
+  PlayerStats,
+  GameSettings,
+  PlayerPosition,
+} from "../types";
 
-// Player stats interface
-interface PlayerStats {
-  score: number;
-  highScore: number;
-  gamesPlayed: number;
-}
-
-// Game settings interface
-interface GameSettings {
-  baseSpeed: number;
-  currentSpeed: number;
-  obstacleCount: number;
-  maxSpeed: number;
-  maxObstacles: number;
-  speedIncreaseRate: number;
-  obstacleIncreaseRate: number;
-  gracePerodSeconds: number; // Grace period before obstacles appear
-  playerMovementSpeed: number; // How fast the player can move
-  movementBounds: number; // Maximum distance from tunnel center
-}
-
-// Main game store interface
-interface GameStore {
-  // Game state
-  gameState: GameState;
-  isNavigationActive: boolean;
-
-  // Timing for pause/resume
-  gameStartTime: number | null;
-  totalPausedTime: number;
-  lastPauseTime: number | null;
-
-  // Player stats
-  playerStats: PlayerStats;
-
-  // Game settings
-  gameSettings: GameSettings;
-
-  // Player position (for camera control)
-  playerPosition: {
-    x: number;
-    y: number;
-    z: number;
-  };
-
-  // Actions
-  setGameState: (state: GameState) => void;
-  startGame: () => void;
-  pauseGame: () => void;
-  resumeGame: () => void;
-  endGame: () => void;
-  resetGame: () => void;
-
-  updatePlayerPosition: (x: number, y: number, z: number) => void;
-  updateScore: (points: number) => void;
-
-  // Timing helpers
-  setGameStartTime: (time: number) => void;
-  getAdjustedGameTime: (currentTime: number) => number;
-
-  // Difficulty progression
-  increaseDifficulty: () => void;
-  resetDifficulty: () => void;
-}
-
-// Default game settings
-const defaultGameSettings: GameSettings = {
-  baseSpeed: 0.12,
-  currentSpeed: 0.12,
-  obstacleCount: 55,
-  maxSpeed: 0.3,
-  maxObstacles: 120,
-  speedIncreaseRate: 0.02,
-  obstacleIncreaseRate: 5,
-  gracePerodSeconds: 3, // 3 seconds before obstacles appear
-  playerMovementSpeed: 0.03, // Speed of player movement
-  movementBounds: 0.4, // Maximum distance from tunnel center
-};
-
-// LocalStorage key for persisting high score
+// LocalStorage keys for persisting game data
 const HIGH_SCORE_KEY = "wormhole-high-score";
+const GAMES_PLAYED_KEY = "wormhole-games-played";
 
 // Load high score from localStorage
 const loadHighScore = (): number => {
@@ -104,12 +38,30 @@ const saveHighScore = (score: number): void => {
   }
 };
 
-// Default player stats
-const defaultPlayerStats: PlayerStats = {
-  score: 0,
-  highScore: loadHighScore(),
-  gamesPlayed: 0,
+// Load games played from localStorage
+const loadGamesPlayed = (): number => {
+  try {
+    const saved = localStorage.getItem(GAMES_PLAYED_KEY);
+    return saved ? parseInt(saved, 10) : 0;
+  } catch {
+    return 0;
+  }
 };
+
+// Save games played to localStorage
+const saveGamesPlayed = (count: number): void => {
+  try {
+    localStorage.setItem(GAMES_PLAYED_KEY, count.toString());
+  } catch {
+    // Ignore localStorage errors (e.g., in private browsing)
+  }
+};
+
+// Default player stats
+const defaultPlayerStats: PlayerStats = createDefaultPlayerStats(
+  loadHighScore(),
+  loadGamesPlayed()
+);
 
 // Create the game store
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -134,7 +86,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Game state actions
   setGameState: (state: GameState) => set({ gameState: state }),
 
-  startGame: () =>
+  startGame: () => {
+    const currentStats = get().playerStats;
+    const newGamesPlayed = currentStats.gamesPlayed + 1;
+
+    // Save games played to localStorage
+    saveGamesPlayed(newGamesPlayed);
+
     set({
       gameState: "playing",
       isNavigationActive: true,
@@ -142,11 +100,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       totalPausedTime: 0,
       lastPauseTime: null,
       playerStats: {
-        ...get().playerStats,
+        ...currentStats,
         score: 0,
-        gamesPlayed: get().playerStats.gamesPlayed + 1,
+        gamesPlayed: newGamesPlayed,
       },
-    }),
+    });
+  },
 
   pauseGame: () => {
     const currentTime = performance.now();
@@ -186,6 +145,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...currentStats,
         highScore: newHighScore,
       },
+    });
+  },
+
+  quitGame: () => {
+    const currentStats = get().playerStats;
+    const newHighScore = Math.max(currentStats.score, currentStats.highScore);
+
+    // Save high score to localStorage if it's a new record
+    if (newHighScore > currentStats.highScore) {
+      saveHighScore(newHighScore);
+    }
+
+    // Return to menu and reset game state
+    set({
+      gameState: "menu",
+      isNavigationActive: false,
+      gameStartTime: null,
+      totalPausedTime: 0,
+      lastPauseTime: null,
+      playerStats: {
+        ...currentStats,
+        score: 0, // Reset current score
+        highScore: newHighScore, // Keep the updated high score
+      },
+      gameSettings: defaultGameSettings,
+      playerPosition: { x: 0, y: 0, z: 0 },
     });
   },
 
@@ -250,4 +235,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       gameSettings: defaultGameSettings,
     }),
+
+  // Clear all persistent data
+  clearAllData: () => {
+    try {
+      localStorage.removeItem(HIGH_SCORE_KEY);
+      localStorage.removeItem(GAMES_PLAYED_KEY);
+    } catch {
+      // Ignore localStorage errors
+    }
+
+    set({
+      gameState: "menu",
+      isNavigationActive: false,
+      gameStartTime: null,
+      totalPausedTime: 0,
+      lastPauseTime: null,
+      playerStats: {
+        score: 0,
+        highScore: 0,
+        gamesPlayed: 0,
+      },
+      gameSettings: defaultGameSettings,
+      playerPosition: { x: 0, y: 0, z: 0 },
+    });
+  },
 }));

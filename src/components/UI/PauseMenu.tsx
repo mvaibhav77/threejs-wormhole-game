@@ -2,7 +2,7 @@ import { useGameStore } from "../../store/gameStore";
 import "./PauseMenu.css";
 
 function PauseMenu() {
-  const { gameState, resumeGame, resetGame, playerStats } = useGameStore();
+  const { gameState, resumeGame, quitGame, playerStats } = useGameStore();
 
   if (gameState !== "paused") return null;
 
@@ -24,7 +24,7 @@ function PauseMenu() {
           <button className="resume-button" onClick={resumeGame}>
             RESUME GAME
           </button>
-          <button className="quit-button" onClick={resetGame}>
+          <button className="quit-button" onClick={quitGame}>
             QUIT TO MENU
           </button>
         </div>
