@@ -2,9 +2,20 @@ import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { OrbitControls } from "@react-three/drei";
 import { Color, FogExp2, ACESFilmicToneMapping } from "three";
+import { useGameStore } from "./store/gameStore";
 import WormholeTunnel from "./3dComponents/WormholeTunnel";
+import HomeScreen from "./components/UI/HomeScreen";
+import GracePeriodTimer from "./components/UI/GracePeriodTimer";
 
 function App() {
+  const { gameState } = useGameStore();
+  const showHomeScreen = gameState === "menu";
+
+  const handleStartGame = () => {
+    // Game start logic will be handled by the store
+    console.log("Game started!");
+  };
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <Canvas
@@ -43,6 +54,12 @@ function App() {
           />
         </EffectComposer>
       </Canvas>
+
+      {/* UI Overlays */}
+      {showHomeScreen && <HomeScreen onStartGame={handleStartGame} />}
+
+      {/* Grace Period Timer */}
+      <GracePeriodTimer />
     </div>
   );
 }
