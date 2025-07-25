@@ -17,8 +17,16 @@ import {
   Line,
   LineBasicMaterial,
   LineSegments,
+  BoxGeometry,
+  Vector3,
+  Vector2,
 } from "three";
-import { OrbitControls } from "three/examples/jsm/Addons.js";
+import {
+  EffectComposer,
+  OrbitControls,
+  RenderPass,
+  UnrealBloomPass,
+} from "three/examples/jsm/Addons.js";
 import spline from "./3dComponents/spline";
 
 const w = window.innerWidth;
@@ -64,6 +72,17 @@ function App() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.03;
 
+    // post-processing
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new Vector2(w, h), 1.5, 0.4, 100);
+    bloomPass.threshold = 0.002;
+    bloomPass.strength = 3;
+    bloomPass.radius = 0;
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // // MAIN TUNNEL CODE // //
     // create a line geometry from the spline
     const points = spline.getPoints(100);
     const geometry = new BufferGeometry().setFromPoints(points);
@@ -75,7 +94,7 @@ function App() {
 
     // create edges for the tube look
     const edges = new EdgesGeometry(tubeGeometry, 0.2);
-    const lineMat = new LineBasicMaterial({ color: 0xffffff });
+    const lineMat = new LineBasicMaterial({ color: 0x8888ff }); // grayish blue
     const tubeLines = new LineSegments(edges, lineMat);
     scene.add(tubeLines);
 
@@ -88,13 +107,43 @@ function App() {
     // const tube = new Mesh(tubeGeometry, tubeMaterial);
     // scene.add(tube);
 
+    // Add boxes in the tunnel with slight random offset from the middle of the tunnel
+    const numBoxes = 55;
+    const size = 0.075;
+    const boxGeo = new BoxGeometry(size, size, size);
+    for (let i = 0; i < numBoxes; i += 1) {
+      const boxMat = new MeshBasicMaterial({
+        color: 0xffffff,
+        wireframe: true,
+      });
+      const box = new Mesh(boxGeo, boxMat);
+      const p = (i / numBoxes + Math.random() * 0.1) % 1;
+      const pos = tubeGeometry.parameters.path.getPointAt(p);
+      pos.x += Math.random() - 0.4;
+      pos.z += Math.random() - 0.4;
+      box.position.copy(pos);
+      const rote = new Vector3(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+      box.rotation.set(rote.x, rote.y, rote.z);
+      const edges = new EdgesGeometry(boxGeo, 0.2);
+      const color = new Color().setHSL(0.7 - p, 1, 0.5);
+      const lineMat = new LineBasicMaterial({ color });
+      const boxLines = new LineSegments(edges, lineMat);
+      boxLines.position.copy(pos);
+      boxLines.rotation.set(rote.x, rote.y, rote.z);
+      scene.add(boxLines);
+    }
+
     // Add Hemisphere Light
     const hemilight = new HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(hemilight);
 
     // Fly through the tunnel
     function updateCamera(t) {
-      const time = t * 0.2;
+      const time = t * 0.12;
       const loopTime = 10 * 1000; // Duration of one loop in seconds
       const p = (time % loopTime) / loopTime; // Normalize t to [0, 1]
       const pos = tubeGeometry.parameters.path.getPointAt(p);
@@ -107,7 +156,7 @@ function App() {
     function animate(t = 0) {
       requestAnimationFrame(animate);
       updateCamera(t);
-      renderer.render(scene, camera);
+      composer.render(scene, camera);
       controls.update();
     }
 
