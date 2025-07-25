@@ -11,10 +11,17 @@ import { useGameStore } from "../../store/gameStore";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import spline from "./spline";
 
-function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
-  const { camera } = useThree();
+function CameraAnimation({
+  tubeGeometry,
+  boxPositions,
+}: {
+  tubeGeometry: TubeGeometry;
+  boxPositions: Vector3[];
+}) {
+  const { camera, scene } = useThree();
   const {
     isNavigationActive,
+    gameState,
     gameSettings,
     playerPosition,
     updatePlayerPosition,
@@ -22,12 +29,94 @@ function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
     getAdjustedGameTime,
     setGameStartTime,
     gameStartTime,
+    endGame,
   } = useGameStore();
   const keys = useKeyboardControls();
   const lastScoreUpdateTime = useRef<number>(0);
+  const startingOffset = useRef<number>(Math.random()); // Random starting position
+  const lastGameState = useRef<string>(gameState);
+
+  // Check if game state changed to playing from menu (new game started)
+  if (lastGameState.current === "menu" && gameState === "playing") {
+    startingOffset.current = Math.random(); // New random start for new game
+  }
+  lastGameState.current = gameState;
+
+  const collisionState = useRef<{
+    hasCollided: boolean;
+    collisionTime: number;
+    originalBackground: Color | null;
+  }>({
+    hasCollided: false,
+    collisionTime: 0,
+    originalBackground: null,
+  });
+
+  // Collision detection function using actual camera position
+  const checkCollision = (cameraPosition: Vector3, gameTime: number) => {
+    // Only check collisions if obstacles are visible (after grace period)
+    const gameTimeInSeconds = gameTime / 1000;
+    if (gameTimeInSeconds < gameSettings.gracePerodSeconds) {
+      return false;
+    }
+
+    const collisionRadius = 0.1; // Player collision radius (camera radius)
+    const boxRadius = 0.075; // Box collision radius (should match box size)
+
+    // Check collision with each box position
+    for (const boxPos of boxPositions) {
+      const distance = cameraPosition.distanceTo(boxPos);
+
+      if (distance < collisionRadius + boxRadius) {
+        return true; // Collision detected!
+      }
+    }
+
+    return false;
+  };
 
   useFrame((_, delta) => {
-    // Only animate camera if navigation is active
+    // Reset collision state when game is not active or when returning to menu
+    if (!isNavigationActive || gameState === "menu") {
+      if (collisionState.current.hasCollided) {
+        // Reset collision state
+        collisionState.current.hasCollided = false;
+        collisionState.current.collisionTime = 0;
+        collisionState.current.originalBackground = null;
+
+        // Restore original background if needed
+        if (collisionState.current.originalBackground) {
+          scene.background = collisionState.current.originalBackground;
+        }
+      }
+      return;
+    }
+
+    // Handle collision state and effects
+    const currentTime = performance.now();
+
+    // Check if we're in collision state
+    if (collisionState.current.hasCollided) {
+      const timeSinceCollision =
+        currentTime - collisionState.current.collisionTime;
+
+      // Keep red background for 2 seconds
+      if (timeSinceCollision < 2000) {
+        // Make background flash red
+        const intensity = Math.sin(timeSinceCollision * 0.01) * 0.3 + 0.7; // Pulsing effect
+        scene.background = new Color(intensity, 0, 0);
+        return; // Don't process movement or other updates
+      } else {
+        // 2 seconds have passed, trigger game over
+        if (collisionState.current.originalBackground) {
+          scene.background = collisionState.current.originalBackground;
+        }
+        endGame();
+        return;
+      }
+    }
+
+    // Only animate camera if navigation is active and no collision
     if (!isNavigationActive) {
       return;
     }
@@ -46,7 +135,7 @@ function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
     // Calculate tunnel path position using adjusted game time
     const time = gameTimeInSeconds * gameSettings.currentSpeed;
     const loopTime = 10; // Duration of one loop in seconds
-    const p = (time % loopTime) / loopTime; // Normalize t to [0, 1]
+    const p = (time / loopTime + startingOffset.current) % 1; // Add random starting offset
 
     // Get tunnel center and direction
     const tunnelCenter = tubeGeometry.parameters.path.getPointAt(p);
@@ -89,6 +178,17 @@ function CameraAnimation({ tubeGeometry }: { tubeGeometry: TubeGeometry }) {
     // Update player position in store
     updatePlayerPosition(screenX, screenY, playerPosition.z);
 
+    // Check for collision with obstacles using camera's actual position
+    if (checkCollision(camera.position, gameTime)) {
+      // Start collision effect
+      if (!collisionState.current.hasCollided) {
+        collisionState.current.hasCollided = true;
+        collisionState.current.collisionTime = performance.now();
+        collisionState.current.originalBackground = scene.background as Color;
+      }
+      return; // Stop processing this frame
+    }
+
     // Update score based on time survived (2 points per second)
     const currentSecond = Math.floor(gameTimeInSeconds);
     if (currentSecond > lastScoreUpdateTime.current) {
@@ -128,7 +228,6 @@ function TunnelWireframe() {
       <lineSegments geometry={edges}>
         <lineBasicMaterial color={0x8888ff} />
       </lineSegments>
-      <CameraAnimation tubeGeometry={tubeGeometry} />
     </>
   );
 }
@@ -142,23 +241,41 @@ interface BoxData {
 }
 
 function TunnelBoxes() {
-  const { gameSettings, isNavigationActive, getAdjustedGameTime } =
+  const { gameSettings, isNavigationActive, getAdjustedGameTime, gameState } =
     useGameStore();
   const tubeGeometry = useMemo(() => {
     return new TubeGeometry(spline, 222, 0.45, 16, true); // Match the wireframe tunnel radius
   }, []);
 
-  const boxData = useMemo(() => {
+  // Store the starting offset for this game session - regenerate when game restarts
+  const gameStartingOffset = useRef<number>(Math.random());
+  const lastGameState = useRef<string>(gameState);
+
+  // Check if game state changed to playing from menu (new game started)
+  if (lastGameState.current === "menu" && gameState === "playing") {
+    gameStartingOffset.current = Math.random(); // New random start for new game
+  }
+  lastGameState.current = gameState;
+
+  const { boxData, boxPositions } = useMemo(() => {
     const numBoxes = gameSettings.obstacleCount;
     const size = 0.075;
     const boxGeo = new BoxGeometry(size, size, size);
     const boxes: BoxData[] = [];
+    const positions: Vector3[] = [];
 
     for (let i = 0; i < numBoxes; i += 1) {
-      const p = (i / numBoxes + Math.random() * 0.1) % 1;
+      // Use deterministic "random" for consistent positioning
+      const randomOffset = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+      const p =
+        (i / numBoxes + randomOffset * 0.1 + gameStartingOffset.current) % 1;
       const pos = tubeGeometry.parameters.path.getPointAt(p);
-      pos.x += Math.random() - 0.4;
-      pos.z += Math.random() - 0.4;
+
+      // Position boxes in a circular pattern around the tunnel
+      const angle = (i * 3.5) % (Math.PI * 2);
+      const radius = 0.35;
+      pos.x += Math.cos(angle) * radius;
+      pos.z += Math.sin(angle) * radius;
 
       const rotation = new Vector3(
         Math.random() * Math.PI,
@@ -176,9 +293,12 @@ function TunnelBoxes() {
         color,
         edges,
       });
+
+      // Store position for collision detection
+      positions.push(pos.clone());
     }
 
-    return boxes;
+    return { boxData: boxes, boxPositions: positions };
   }, [tubeGeometry, gameSettings.obstacleCount]);
 
   // Hide obstacles for the first 3 seconds of gameplay
@@ -198,6 +318,13 @@ function TunnelBoxes() {
 
   return (
     <>
+      {/* Camera Animation with collision detection */}
+      <CameraAnimation
+        tubeGeometry={tubeGeometry}
+        boxPositions={boxPositions}
+      />
+
+      {/* Render obstacles */}
       {showObstacles &&
         boxData.map((box) => (
           <lineSegments

@@ -5,6 +5,7 @@ import { useGameStore } from "./store/gameStore";
 import { usePauseControls } from "./hooks/usePauseControls";
 import WormholeTunnel from "./components/3dComponents/WormholeTunnel";
 import HomeScreen from "./components/UI/HomeScreen";
+import GameOverScreen from "./components/UI/GameOverScreen";
 import GracePeriodTimer from "./components/UI/GracePeriodTimer";
 import PlayerIndicator from "./components/UI/PlayerIndicator";
 import PauseMenu from "./components/UI/PauseMenu";
@@ -61,6 +62,9 @@ function Game() {
 
       {/* UI Overlays */}
       {showHomeScreen && <HomeScreen onStartGame={handleStartGame} />}
+
+      {/* Game Over Screen */}
+      <GameOverScreen />
 
       {/* Pause Button */}
       <PauseButton />
